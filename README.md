@@ -87,11 +87,11 @@ node server.js
 
 You should see the following console output confirming the server is running:
 
-```
+```text
 Server running at http://127.0.0.1:3000/
 ```
 
-The server is now listening for incoming HTTP connections on `127.0.0.1:3000` (see `server.js` lines 3–4 for the hostname and port configuration, line 12–14 for the listen call).
+The server is now listening for incoming HTTP connections on `127.0.0.1:3000` (see `server.js` lines 29 and 38 for the hostname and port configuration, lines 78–80 for the listen call).
 
 ### Making Requests
 
@@ -105,7 +105,7 @@ curl http://127.0.0.1:3000/
 
 **Expected output:**
 
-```
+```text
 Hello, World!
 ```
 
@@ -117,11 +117,11 @@ curl -X POST http://127.0.0.1:3000/
 
 **Expected output:**
 
-```
+```text
 Hello, World!
 ```
 
-The server responds identically to **all HTTP methods** (GET, POST, PUT, DELETE, PATCH, etc.) and **all URL paths**. The request handler at `server.js` lines 6–10 does not inspect the request method or URL — it always returns the same response.
+The server responds identically to **all HTTP methods** (GET, POST, PUT, DELETE, PATCH, etc.) and **all URL paths**. The request handler at `server.js` lines 58–65 does not inspect the request method or URL — it always returns the same response.
 
 ---
 
@@ -139,7 +139,7 @@ The server exposes a single endpoint that handles all incoming HTTP requests:
 | **Status Code** | `200 OK` |
 | **Response Body** | `Hello, World!\n` |
 
-The server responds identically regardless of the HTTP method, URL path, query parameters, request headers, or request body. This behavior is defined in the request handler callback at `server.js` lines 6–10.
+The server responds identically regardless of the HTTP method, URL path, query parameters, request headers, or request body. This behavior is defined in the request handler callback at `server.js` lines 58–65.
 
 ### Request Format
 
@@ -156,9 +156,9 @@ Every request receives the same fixed response.
 
 | Field | Value | Source |
 |-------|-------|--------|
-| Status Code | `200 OK` | `server.js` line 7: `res.statusCode = 200` |
-| Content-Type | `text/plain` | `server.js` line 8: `res.setHeader('Content-Type', 'text/plain')` |
-| Body | `Hello, World!\n` | `server.js` line 9: `res.end('Hello, World!\n')` |
+| Status Code | `200 OK` | `server.js` line 60: `res.statusCode = 200` |
+| Content-Type | `text/plain` | `server.js` line 62: `res.setHeader('Content-Type', 'text/plain')` |
+| Body | `Hello, World!\n` | `server.js` line 64: `res.end('Hello, World!\n')` |
 
 **Verbose `curl` example showing full HTTP headers:**
 
@@ -168,7 +168,7 @@ curl -v http://127.0.0.1:3000/
 
 **Expected output (headers and body):**
 
-```
+```text
 *   Trying 127.0.0.1:3000...
 > GET / HTTP/1.1
 > Host: 127.0.0.1:3000
@@ -203,7 +203,7 @@ The server binds to `127.0.0.1:3000` (loopback address only). This means:
 - It is **not accessible** from other machines on the network
 - This is the intended behavior for local development and testing
 
-The hostname and port are defined as constants in `server.js` lines 3–4:
+The hostname and port are defined as constants in `server.js` lines 29 and 38:
 
 ```javascript
 const hostname = '127.0.0.1';
@@ -214,8 +214,8 @@ const port = 3000;
 
 For production deployment, consider the following modifications:
 
-- **Network binding:** Change hostname from `'127.0.0.1'` to `'0.0.0.0'` in `server.js` line 3 to accept connections from all network interfaces
-- **Port configuration:** Consider using environment variables for the port (e.g., `process.env.PORT || 3000`) instead of the hardcoded value in `server.js` line 4
+- **Network binding:** Change hostname from `'127.0.0.1'` to `'0.0.0.0'` in `server.js` line 29 to accept connections from all network interfaces
+- **Port configuration:** Consider using environment variables for the port (e.g., `process.env.PORT || 3000`) instead of the hardcoded value in `server.js` line 38
 - **Error handling:** Add try-catch blocks and error event listeners for robustness
 - **HTTPS:** Use the `https` module or a reverse proxy (e.g., Nginx) for encrypted connections
 - **Logging:** Implement structured logging instead of `console.log`
@@ -259,7 +259,7 @@ Create a service file at `/etc/systemd/system/hello-world.service` and configure
 
 ## Project Structure
 
-This repository contains 15 files in a flat directory structure (no subdirectories). The files are organized into four categories: Runtime, Configuration, Documentation, and Fixture.
+This repository contains 21 files in a flat directory structure (no subdirectories). The files are organized into four categories: Runtime, Configuration, Documentation, and Fixture.
 
 | File | Category | Description |
 |------|----------|-------------|
@@ -273,6 +273,12 @@ This repository contains 15 files in a flat directory structure (no subdirectori
 | `LoginTest - Copy.java` | Fixture | Duplicate Java stub; integration test fixture |
 | `industry.csv` | Fixture | CSV with 43 industry labels (header: "Industry"); static reference data |
 | `industry - Copy.csv` | Fixture | Duplicate CSV; static reference data fixture |
+| `100Pages.pdf` | Fixture | PDF document fixture (100 pages); integration test artifact |
+| `100Pages - Copy.pdf` | Fixture | Duplicate PDF document; integration test artifact |
+| `demo.jpg` | Fixture | JPEG image fixture; integration test artifact |
+| `demo - Copy.jpg` | Fixture | Duplicate JPEG image; integration test artifact |
+| `sample.doc` | Fixture | Word document fixture; integration test artifact |
+| `sample - Copy.doc` | Fixture | Duplicate Word document; integration test artifact |
 | `.blitzyignore.txt` | Fixture | Empty ignore-rule placeholder (0 bytes) |
 | `test.blitzyignore.txt` | Fixture | Empty ignore-rule test file (0 bytes) |
 | `test1.blitzyignore.txt` | Fixture | Empty ignore-rule test file (0 bytes) |
@@ -319,13 +325,13 @@ stateDiagram-v2
 
 **Error message:**
 
-```
+```text
 Error: listen EADDRINUSE: address already in use 127.0.0.1:3000
 ```
 
 **Cause:** Port 3000 is already in use by another process.
 
-**Solution:** Stop the process using port 3000 or change the port in `server.js` line 4:
+**Solution:** Stop the process using port 3000 or change the port in `server.js` line 38:
 
 ```bash
 # Find the process using port 3000
@@ -341,7 +347,7 @@ taskkill /PID <PID> /F    # Windows
 
 **Error message:**
 
-```
+```text
 SyntaxError: Unexpected token =>
 ```
 
@@ -359,7 +365,7 @@ If the version is below v6, [download and install](https://nodejs.org/) a newer 
 
 **Error message:**
 
-```
+```text
 curl: (7) Failed to connect to 127.0.0.1 port 3000: Connection refused
 ```
 
@@ -369,7 +375,7 @@ curl: (7) Failed to connect to 127.0.0.1 port 3000: Connection refused
 
 1. Ensure the server is running: `node server.js`
 2. Verify the console shows: `Server running at http://127.0.0.1:3000/`
-3. Note that the server binds to `127.0.0.1` (loopback). It is **not accessible from other machines** on the network. If you need external access, change hostname to `'0.0.0.0'` in `server.js` line 3.
+3. Note that the server binds to `127.0.0.1` (loopback). It is **not accessible from other machines** on the network. If you need external access, change hostname to `'0.0.0.0'` in `server.js` line 29.
 
 ---
 
@@ -390,7 +396,7 @@ If you need to make changes:
 
 This project is licensed under the **MIT License** as declared in `package.json`.
 
-```
+```text
 License: MIT
 Author: hxu
 Package: hello_world@1.0.0
