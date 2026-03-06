@@ -41,17 +41,17 @@ Before running the server, ensure the following software is installed on your sy
 
 | Prerequisite | Minimum Version | Recommended Version | Purpose |
 |--------------|-----------------|---------------------|---------|
-| [Node.js](https://nodejs.org/) | v6.0.0+ | v20.x (current runtime: v20.20.1) | JavaScript runtime to execute `server.js` |
-| [npm](https://www.npmjs.com/) | v7.0.0+ | v11.x (current: v11.1.0) | Package manager; v7+ required for `lockfileVersion` 3 support |
+| [Node.js](https://nodejs.org/) | v6.0.0+ | v20.x (current runtime: v20.19.5) | JavaScript runtime to execute `server.js` |
+| [npm](https://www.npmjs.com/) | v7.0.0+ | v10.x (current: 10.8.2) | Package manager; v7+ required for `lockfileVersion` 3 support |
 
 Verify your installation:
 
 ```bash
 node --version
-# Expected output: v20.20.1 (or any version >= v6.0.0)
+# Expected output: v20.19.5 (or any version >= v6.0.0)
 
 npm --version
-# Expected output: 11.1.0 (or any version >= v7.0.0)
+# Expected output: 10.8.2 (or any version >= v7.0.0)
 ```
 
 ---
@@ -264,7 +264,7 @@ This repository contains 21 files in a flat directory structure (no subdirectori
 | File | Category | Description |
 |------|----------|-------------|
 | `server.js` | Runtime | HTTP server — main executable, binds to 127.0.0.1:3000 and responds with "Hello, World!" to all requests |
-| `server - Copy.js` | Fixture | Byte-identical duplicate of `server.js`; integration test fixture |
+| `server - Copy.js` | Fixture | Original version of `server.js` (pre-documentation); integration test fixture |
 | `package.json` | Configuration | npm package metadata (name: `hello_world`, version: `1.0.0`, author: `hxu`, license: MIT) |
 | `package-lock.json` | Configuration | npm dependency lockfile (lockfileVersion 3) |
 | `jsdoc.json` | Configuration | JSDoc documentation generator configuration — specifies source files, plugins, and output settings |
