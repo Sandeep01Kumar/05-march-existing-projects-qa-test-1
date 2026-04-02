@@ -49,6 +49,7 @@ const {
   rateLimitMiddleware
 } = require('./middleware/security');
 
+// Available for future POST/PUT routes that accept user input
 const { handleValidationErrors } = require('./middleware/validation');
 const config = require('./config/security');
 
@@ -113,14 +114,22 @@ if (require.main === module) {
   const keyPath = path.resolve(config.tlsOptions.keyPath);
 
   if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
-    const tlsCredentials = {
-      cert: fs.readFileSync(certPath),
-      key: fs.readFileSync(keyPath)
-    };
+    try {
+      const tlsCredentials = {
+        cert: fs.readFileSync(certPath),
+        key: fs.readFileSync(keyPath)
+      };
 
-    https.createServer(tlsCredentials, app).listen(httpsPort, hostname, () => {
-      console.log(`HTTPS Server running at https://${hostname}:${httpsPort}/`);
-    });
+      https.createServer(tlsCredentials, app).listen(httpsPort, hostname, () => {
+        console.log(`HTTPS Server running at https://${hostname}:${httpsPort}/`);
+      });
+    } catch (err) {
+      console.error('Failed to start HTTPS server:', err.message);
+    }
+  } else {
+    console.warn(
+      'TLS certificates not found — HTTPS server not started. See certs/README.md for setup instructions.'
+    );
   }
 }
 

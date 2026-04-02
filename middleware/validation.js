@@ -23,7 +23,7 @@
  *   app.post('/route', validateContentType, ...sanitizeBody, handleValidationErrors, handler);
  */
 
-const { body, query, param, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 
 // ---------------------------------------------------------------------------
 // handleValidationErrors — Validation Error Handling Middleware

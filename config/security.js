@@ -34,7 +34,7 @@ module.exports = {
    */
   corsOptions: {
     origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',')
+      ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
       : ['http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -51,10 +51,13 @@ module.exports = {
    * @property {number}  limit           - Max requests per IP within the window (default: 100)
    * @property {string}  standardHeaders - RateLimit header format per IETF draft-8
    * @property {boolean} legacyHeaders   - Disable deprecated X-RateLimit-* headers
+   *
+   * Note: Numeric env vars are parsed with an isNaN guard so that an explicit
+   * value of "0" is respected rather than silently falling back to the default.
    */
   rateLimitOptions: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-    limit: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
+    windowMs: (() => { const v = parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10); return isNaN(v) ? 15 * 60 * 1000 : v; })(),
+    limit: (() => { const v = parseInt(process.env.RATE_LIMIT_MAX, 10); return isNaN(v) ? 100 : v; })(),
     standardHeaders: 'draft-8',
     legacyHeaders: false
   },
@@ -104,7 +107,7 @@ module.exports = {
    *
    * @type {number}
    */
-  httpsPort: parseInt(process.env.HTTPS_PORT, 10) || 3443,
+  httpsPort: (() => { const v = parseInt(process.env.HTTPS_PORT, 10); return isNaN(v) ? 3443 : v; })(),
 
   /**
    * HTTP server listening port.
@@ -113,7 +116,7 @@ module.exports = {
    *
    * @type {number}
    */
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: (() => { const v = parseInt(process.env.PORT, 10); return isNaN(v) ? 3000 : v; })(),
 
   /**
    * Server hostname / bind address.
