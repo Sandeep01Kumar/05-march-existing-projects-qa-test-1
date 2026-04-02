@@ -3,7 +3,7 @@
 /**
  * server.js — Express.js Application with Security Middleware
  *
- * Migrated from bare Node.js http.createServer() to Express 4.21.2 with
+ * Migrated from bare Node.js http.createServer() to Express 4.22.1 with
  * comprehensive OWASP-aligned security hardening:
  *
  *   - Helmet 8.1.0     — HTTP security headers (CSP, HSTS, X-Content-Type-Options,
