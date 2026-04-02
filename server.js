@@ -96,6 +96,45 @@ app.get('/', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Global Error Handler — Prevents stack trace / file path leakage
+// ---------------------------------------------------------------------------
+// Express identifies error-handling middleware by its four-parameter signature
+// (err, req, res, next). This MUST be registered after all routes so that
+// errors thrown by body parsers (SyntaxError from malformed JSON, 413 from
+// oversized payloads) and any future route handlers are caught here instead
+// of falling through to Express's default error handler, which renders full
+// stack traces in non-production environments.
+// Addresses OWASP A05:2021 — Security Misconfiguration (information disclosure).
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  // Log full error details to server console for operator debugging
+  console.error(`[ERROR] ${err.status || 500} — ${err.message}`);
+
+  // Determine the appropriate HTTP status code
+  const statusCode = err.status || err.statusCode || 500;
+
+  // Map common error types to safe, user-facing messages
+  let clientMessage;
+  if (err.type === 'entity.parse.failed') {
+    // Malformed JSON body — thrown by express.json() / body-parser
+    clientMessage = 'Malformed request body — invalid JSON';
+  } else if (err.type === 'entity.too.large') {
+    // Oversized body — thrown by express.json() / body-parser
+    clientMessage = 'Request body exceeds the maximum allowed size';
+  } else if (statusCode >= 400 && statusCode < 500) {
+    clientMessage = 'Bad request';
+  } else {
+    clientMessage = 'Internal server error';
+  }
+
+  res.status(statusCode).json({
+    status: 'error',
+    message: clientMessage
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Server Bootstrap (only when executed directly, not when imported for tests)
 // ---------------------------------------------------------------------------
 
