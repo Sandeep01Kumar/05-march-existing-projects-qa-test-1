@@ -55,12 +55,11 @@ describe('Rate Limiting', () => {
     expect(response.status).toBe(200);
 
     // express-rate-limit with standardHeaders: 'draft-8' sets two headers:
-    //   ratelimit       — combined remaining/reset info, e.g. "100-in-15min"; r=98; t=900
-    //   ratelimit-policy — policy definition, e.g. "100-in-15min"; q=100; w=900; pk=:...:
+    //   ratelimit       — combined remaining/reset info, e.g. "limit=100, remaining=98, reset=900"
+    //   ratelimit-policy — policy definition, e.g. "100;w=900"
     // Node.js normalises header names to lowercase in the response object.
     const hasRateLimitHeader =
       response.headers['ratelimit'] !== undefined ||
-      response.headers['ratelimit-limit'] !== undefined ||
       response.headers['ratelimit-policy'] !== undefined;
 
     expect(hasRateLimitHeader).toBe(true);

@@ -92,6 +92,7 @@ describe('CORS Policy', () => {
     expect(allowedMethods).toContain('POST');
     expect(allowedMethods).toContain('PUT');
     expect(allowedMethods).toContain('DELETE');
+    expect(allowedMethods).toContain('OPTIONS');
   });
 
   // -------------------------------------------------------------------------

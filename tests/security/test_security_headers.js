@@ -16,7 +16,7 @@
  *   - Cross-Origin-Resource-Policy: same-origin
  *   - Origin-Agent-Cluster: ?1
  *   - Referrer-Policy: no-referrer
- *   - Strict-Transport-Security: max-age=15552000; includeSubDomains
+ *   - Strict-Transport-Security: max-age=31536000; includeSubDomains
  *   - X-Content-Type-Options: nosniff
  *   - X-DNS-Prefetch-Control: off
  *
@@ -60,7 +60,7 @@ describe('Security Headers', () => {
   test('should set Strict-Transport-Security header', async () => {
     const response = await request(app).get('/');
     expect(response.headers['strict-transport-security']).toBeDefined();
-    expect(response.headers['strict-transport-security']).toContain('max-age=');
+    expect(response.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains');
   });
 
   // -------------------------------------------------------------------------

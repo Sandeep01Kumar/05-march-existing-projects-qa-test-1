@@ -32,8 +32,9 @@ describe('Input Validation', () => {
   test('should handle XSS payload in query parameters', async () => {
     const response = await request(app)
       .get('/?name=<script>alert("xss")</script>');
-    // The request should still succeed (GET / returns Hello World)
-    // but the query params should be sanitized by middleware
+    // GET / route ignores query parameters — no XSS vector exists for this
+    // endpoint. Sanitization middleware available in middleware/validation.js
+    // for routes accepting user input.
     expect(response.status).toBe(200);
   });
 
@@ -64,22 +65,21 @@ describe('Input Validation', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Test 4: Content-Type enforcement for POST requests
+  // Test 4: POST without Content-Type returns error (no POST route defined)
   // ---------------------------------------------------------------------------
-  // Sends a POST request without a proper Content-Type header. If the
-  // validateContentType middleware from middleware/validation.js is applied
-  // globally, this should return 400. If no global Content-Type enforcement
-  // is active and no POST route is defined, the response will be 404.
-  // Both statuses are acceptable outcomes — the key assertion is that the
-  // server does not crash (no 500).
-  test('should return 400 for POST without Content-Type header', async () => {
+  // Sends a POST request without a proper Content-Type header. Currently no
+  // POST route is defined and validateContentType middleware from
+  // middleware/validation.js is not applied globally (no routes accept user
+  // input per AAP design). The server returns 404 (route not found). When
+  // POST routes are added, validateContentType should be applied and this
+  // test updated to verify 400 from actual Content-Type enforcement.
+  test('should reject POST without Content-Type or return 404 for undefined route', async () => {
     const response = await request(app)
       .post('/')
       .set('Content-Type', '')
       .send('test body');
-    // The validateContentType middleware should reject POST without Content-Type
-    // Expect 400 or 404 (404 if no POST route exists, but Content-Type
-    // validation runs first if applied globally)
+    // No POST route exists — server returns 404. validateContentType
+    // middleware is available in middleware/validation.js for future routes.
     expect([400, 404]).toContain(response.status);
   });
 
@@ -106,20 +106,20 @@ describe('Input Validation', () => {
   // ---------------------------------------------------------------------------
   // Test 6: Oversized request body handling
   // ---------------------------------------------------------------------------
-  // Sends a POST request with a 1MB body (far exceeding the typical 100kb
-  // default limit of Express body parsers). The server should handle this
-  // gracefully — either returning 413 Payload Too Large (if the body parser
-  // processes it) or 404 (if no parser handles the text/plain content type
-  // and no POST route exists). The key assertion is that the status is >= 400
-  // (error) and the server does not crash.
+  // Sends a POST request with a 1MB body using Content-Type: application/json
+  // so that express.json() (default 100kb limit) actually attempts to process
+  // the payload and triggers the size-limit check. The body-parser detects the
+  // payload exceeds the configured limit and throws an entity.too.large error
+  // (status 413), which is caught by the global error handler in server.js and
+  // returned as a safe client-facing message.
   test('should handle oversized request body', async () => {
     const largeBody = 'x'.repeat(1024 * 1024); // 1MB body
     const response = await request(app)
       .post('/')
-      .set('Content-Type', 'text/plain')
+      .set('Content-Type', 'application/json')
       .send(largeBody);
-    // Express default body parser has a 100kb limit
-    // Expect 413 Payload Too Large or similar error status
+    // express.json() default limit is 100kb — a 1MB payload triggers
+    // entity.too.large (413) caught by the global error handler
     expect(response.status).toBeGreaterThanOrEqual(400);
   });
 
