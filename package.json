@@ -1,11 +1,30 @@
 {
-    "name": "hello_world",
-    "version": "1.0.0",
-    "description": "Hello world in Node.js",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "hxu",
-    "license": "MIT"
+  "name": "hello_world",
+  "version": "1.0.0",
+  "description": "Hello world in Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --watchAll=false"
+  },
+  "author": "hxu",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "2.8.6",
+    "express": "4.22.1",
+    "express-rate-limit": "8.3.2",
+    "express-validator": "7.3.1",
+    "helmet": "8.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testMatch": [
+      "**/tests/**/*.js",
+      "**/__tests__/**/*.[jt]s?(x)",
+      "**/?(*.)+(spec|test).[tj]s?(x)"
+    ]
+  }
 }
