@@ -1,5 +1,7 @@
 'use strict';
 
+// Rule Applied
+
 /**
  * server.js — Express.js Application with Security Middleware
  *
@@ -96,11 +98,31 @@ app.use(express.urlencoded({ extended: true }));
 
 /**
  * GET / — Root endpoint preserving original server behavior.
- * Responds with 200 OK, Content-Type: text/plain, and "Hello, World!\n".
  *
- * The handleValidationErrors middleware is not applied to this route because
- * GET / accepts no user input. It is available for future routes that
- * require input validation (e.g., POST endpoints with body data).
+ * Responds with HTTP 200 OK, Content-Type: text/plain, and the body
+ * "Hello, World!\n". This contract is preserved byte-for-byte for backward
+ * compatibility with the original http.createServer()-based implementation
+ * and MUST NOT be altered by future maintainers.
+ *
+ * The handleValidationErrors middleware is intentionally not applied to this
+ * route because GET / accepts no user input. The validation middleware is
+ * available for future routes that accept request bodies (POST/PUT/PATCH).
+ *
+ * Side effects: writes one HTTP response to the client. No external I/O,
+ * no logging, no state mutation.
+ *
+ * @param {import('express').Request} req - Express request object (unused; route accepts no input)
+ * @param {import('express').Response} res - Express response object used to set Content-Type and send the body
+ * @returns {void}
+ *
+ * @example
+ * // curl -i http://127.0.0.1:3000/
+ * // HTTP/1.1 200 OK
+ * // Content-Type: text/plain; charset=utf-8
+ * //
+ * // Hello, World!
+ *
+ * @see {@link https://owasp.org/Top10/A05_2021-Security_Misconfiguration/} OWASP A05:2021
  */
 app.get('/', (req, res) => {
   res.type('text').send('Hello, World!\n');
@@ -109,14 +131,42 @@ app.get('/', (req, res) => {
 // ---------------------------------------------------------------------------
 // Global Error Handler — Prevents stack trace / file path leakage
 // ---------------------------------------------------------------------------
-// Express identifies error-handling middleware by its four-parameter signature
-// (err, req, res, next). This MUST be registered after all routes so that
-// errors thrown by body parsers (SyntaxError from malformed JSON, 413 from
-// oversized payloads) and any future route handlers are caught here instead
-// of falling through to Express's default error handler, which renders full
-// stack traces in non-production environments.
-// Addresses OWASP A05:2021 — Security Misconfiguration (information disclosure).
 
+/**
+ * Global error-handling middleware for the Express application.
+ *
+ * Express identifies error-handling middleware by its four-parameter signature
+ * (err, req, res, next). This middleware MUST be registered after all routes
+ * so that errors thrown by body parsers (SyntaxError from malformed JSON, 413
+ * from oversized payloads) and any future route handlers are caught here
+ * instead of falling through to Express's default error handler, which renders
+ * full stack traces in non-production environments.
+ *
+ * The handler maps error types to safe, user-facing messages:
+ *   - err.type === 'entity.parse.failed' → 400 "Malformed request body — invalid JSON"
+ *   - err.type === 'entity.too.large'    → 413 "Request body exceeds the maximum allowed size"
+ *   - 400 ≤ statusCode < 500             → "Bad request"
+ *   - otherwise                          → 500 "Internal server error"
+ *
+ * Full error details (including stack trace, if present) are logged to the
+ * server console via console.error() for operator debugging, but are NEVER
+ * returned to the client. This sanitization addresses OWASP A05:2021 —
+ * Security Misconfiguration (information disclosure prevention).
+ *
+ * Contract: this handler MUST always terminate the request via res.status().json().
+ * It MUST NOT throw, and it MUST NOT call next(). The unused `next` parameter
+ * is preserved because Express requires the four-parameter signature to
+ * identify the function as error middleware.
+ *
+ * @param {Error & {type?: string, status?: number, statusCode?: number}} err - Error object propagated via next(err) from upstream middleware/handlers
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object used to send the sanitized JSON error response
+ * @param {import('express').NextFunction} next - Express next function (unused; required by Express to identify this as error middleware)
+ * @returns {void}
+ *
+ * @see {@link https://expressjs.com/en/guide/error-handling.html} Express Error Handling
+ * @see {@link https://owasp.org/Top10/A05_2021-Security_Misconfiguration/} OWASP A05:2021
+ */
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   // Log full error details to server console for operator debugging
@@ -149,12 +199,39 @@ app.use((err, req, res, next) => {
 // Server Bootstrap (only when executed directly, not when imported for tests)
 // ---------------------------------------------------------------------------
 
+/**
+ * Conditional server bootstrap guard.
+ *
+ * Implements the F-010 Test/Bootstrap Separation principle: HTTP and HTTPS
+ * listeners are started ONLY when this file is executed directly (e.g.,
+ * `node server.js`), not when it is imported by another module via
+ * `require('./server')`.
+ *
+ * This guard enables Supertest-based testing: the 4 Jest test files in
+ * tests/security/ import the Express app via `require('./server')` to run
+ * in-process HTTP assertions WITHOUT binding to a network port. Without this
+ * guard, every test invocation would attempt to bind ports 3000/3443 and fail
+ * after the first test or in parallel CI environments.
+ *
+ * @see {@link https://nodejs.org/api/modules.html#requiremain} Node.js require.main
+ */
 if (require.main === module) {
   const hostname = config.hostname;
   const port = config.port;
   const httpsPort = config.httpsPort;
 
-  // Start HTTP server — preserves original binding to 127.0.0.1:3000
+  /**
+   * HTTP listen callback.
+   *
+   * Invoked once by Node.js after the HTTP server successfully binds to the
+   * configured (hostname, port) tuple — by default 127.0.0.1:3000, preserving
+   * the original server.js loopback binding. Logs the bound URL to stdout.
+   *
+   * Side effect: writes one line to stdout via console.log().
+   *
+   * @private
+   * @returns {void}
+   */
   app.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}/`);
   });
@@ -170,6 +247,23 @@ if (require.main === module) {
         key: fs.readFileSync(keyPath)
       };
 
+      /**
+       * HTTPS listen callback.
+       *
+       * Invoked once by Node.js after the HTTPS server successfully binds to
+       * the configured (hostname, httpsPort) tuple — by default 127.0.0.1:3443.
+       * Logs the bound URL to stdout. Only reached when both TLS_CERT_PATH and
+       * TLS_KEY_PATH resolve to readable PEM files; otherwise the surrounding
+       * `if (fs.existsSync(...))` branch is skipped and the application runs
+       * in HTTP-only mode with a warning logged via console.warn().
+       *
+       * Side effect: writes one line to stdout via console.log().
+       *
+       * @private
+       * @returns {void}
+       *
+       * @see {@link ./certs/README.md} TLS certificate setup
+       */
       https.createServer(tlsCredentials, app).listen(httpsPort, hostname, () => {
         console.log(`HTTPS Server running at https://${hostname}:${httpsPort}/`);
       });
@@ -187,4 +281,23 @@ if (require.main === module) {
 // Module Export — Express app instance for supertest and external consumers
 // ---------------------------------------------------------------------------
 
+/**
+ * Exported Express application instance.
+ *
+ * Consumed by the 4 Supertest-based test files in tests/security/
+ * (test_security_headers.js, test_cors.js, test_rate_limiting.js,
+ * test_input_validation.js — 30 tests total) via the pattern:
+ *
+ *     const request = require('supertest');
+ *     const app = require('./server');
+ *     await request(app).get('/').expect(200);
+ *
+ * The export is reachable WITHOUT starting an HTTP/HTTPS listener because of
+ * the `require.main === module` guard above, which keeps app.listen() out of
+ * the import path. This is the F-010 Test/Bootstrap Separation principle in
+ * action.
+ *
+ * @exports app
+ * @type {import('express').Application}
+ */
 module.exports = app;
