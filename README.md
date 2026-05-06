@@ -42,7 +42,7 @@ The baseline state documented in `blitzy/documentation/Project Guide.md` §9 lin
 | Reachability           | The vulnerable HTML-emitting methods of the `Address6` class are not invoked by any application code or by `express-rate-limit`'s use of `ip-address` (which is limited to address parsing and key generation). The runtime exposure is therefore limited. |
 | Remediation Path       | `npm audit fix --force` upgrades `express-rate-limit` to a non-vulnerable major version (breaking change requiring regression testing of all 5 rate-limit tests in `tests/security/test_rate_limiting.js`). Tracked as deferred future work. |
 
-This disclosure satisfies the spirit of Inviolable Constraint #10 (Zero-Vulnerability Floor — `blitzy/documentation/Technical Specifications.md` §5.4.8.1) by making the divergence transparent. Pull requests must not introduce any *new* findings beyond those listed here.
+This disclosure satisfies the spirit of Inviolable Constraint #10 (Zero-Vulnerability Floor — see the zero-findings baseline recorded in `blitzy/documentation/Project Guide.md` §1.3 line 38, "npm audit reports 0 vulnerabilities across entire dependency tree") by making the divergence transparent. Pull requests must not introduce any *new* findings beyond those listed here.
 
 ### OWASP Top 10 (2021) Coverage
 
@@ -182,11 +182,11 @@ node server.js
 Expected console output (without TLS certificates installed):
 
 ```text
-Server running at http://127.0.0.1:3000/
 TLS certificates not found — HTTPS server not started. See certs/README.md for setup instructions.
+Server running at http://127.0.0.1:3000/
 ```
 
-If TLS certificates are present at `certs/cert.pem` and `certs/key.pem`, an additional line `HTTPS Server running at https://127.0.0.1:3443/` appears (see `server.js:235-237` for the HTTP startup log and `server.js:267-269` for the HTTPS startup log; the warning fallback is at `server.js:273-277`).
+The TLS warning appears first because the `else { console.warn(...) }` branch at `server.js:273-277` runs synchronously during bootstrap, while the `Server running at ...` log at `server.js:235-237` is emitted asynchronously from the `app.listen` callback after the OS finishes binding the port. If TLS certificates are present at `certs/cert.pem` and `certs/key.pem`, the warning line is replaced by `HTTPS Server running at https://127.0.0.1:3443/` (see `server.js:267-269` for the HTTPS startup log).
 
 ### Run the Tests
 
@@ -242,7 +242,7 @@ Each command exits cleanly when expectations are met. If any command produces un
 
 The application exposes exactly one HTTP endpoint.
 
-> **🔒 Backward Compatibility**: The `GET /` contract — `200 OK`, `Content-Type: text/plain`, body `Hello, World!\n` — is preserved byte-for-byte per Inviolable Constraint #1 in `blitzy/documentation/Technical Specifications.md` §5.4.8.1. This contract MUST NOT be altered by future maintainers.
+> **🔒 Backward Compatibility**: The `GET /` contract — `200 OK`, `Content-Type: text/plain`, body `Hello, World!\n` — is preserved byte-for-byte per Inviolable Constraint #1, recorded in `blitzy/documentation/Technical Specifications.md` §0.10.3 line 641 ("Backward compatibility | Must maintain — the `GET /` endpoint must continue to return `Hello, World!` with `200 OK` status") and §0.11.1 line 660 ("Preserve existing functionality"). This contract MUST NOT be altered by future maintainers.
 
 **Method/Path:** `GET /`
 
@@ -354,7 +354,7 @@ app.post('/route', validateContentType, ...sanitizeBody, handleValidationErrors,
 
 ### Middleware Pipeline (Flowchart)
 
-The middleware registration order is load-bearing per Inviolable Constraint #8 in `blitzy/documentation/Technical Specifications.md` §5.4.8.1.
+The middleware registration order is load-bearing per Inviolable Constraint #8 — see the middleware integration sequence specified in `blitzy/documentation/Technical Specifications.md` §0.5.1 lines 246-256 (helmet, cors, express-rate-limit, and express-validator integration steps).
 
 ```mermaid
 flowchart LR
@@ -433,7 +433,7 @@ For full certificate setup details — flag explanations, environment variable o
 
 ### Production Posture
 
-> **⚠️ Production Loopback Constraint**: The application binds to `127.0.0.1` (loopback interface) only. Public-internet exposure REQUIRES an upstream reverse proxy (nginx, HAProxy, Caddy) or WAF terminating on a public interface and forwarding to `127.0.0.1`. The hostname is hardcoded in `config/security.js:128` and is **NOT** environment-overridable per Inviolable Constraint #9 in `blitzy/documentation/Technical Specifications.md` §5.4.8.1.
+> **⚠️ Production Loopback Constraint**: The application binds to `127.0.0.1` (loopback interface) only. Public-internet exposure REQUIRES an upstream reverse proxy (nginx, HAProxy, Caddy) or WAF terminating on a public interface and forwarding to `127.0.0.1`. The hostname is hardcoded in `config/security.js:128` and is **NOT** environment-overridable per Inviolable Constraint #9, recorded in `blitzy/documentation/Technical Specifications.md` §0.10.3 line 647 ("Server binding | Preserve `127.0.0.1:3000` for HTTP; add `127.0.0.1:3443` for HTTPS") and §0.11.1 line 660 ("The server must continue to bind to `127.0.0.1:3000`").
 
 Production prerequisites:
 
@@ -668,7 +668,7 @@ This repository does not include a separate `CONTRIBUTING.md` file. The contribu
 - **Code style — JSDoc**: New functions and middleware should follow the JSDoc patterns observed in [middleware/validation.js](middleware/validation.js) lines 32–53 and 93–123 — module-level header with `@module`/`@requires`, function-level blocks with `@param {import('express').Request} req`, `@param {import('express').Response} res`, `@param {import('express').NextFunction} next`, and `@returns {void}`.
 - **Code style — JavaScript**: camelCase identifiers throughout (e.g., `corsOptions`, `rateLimitOptions`, `helmetMiddleware`, `httpsPort`); CommonJS `require`/`module.exports` (no ES modules); strict-mode (`'use strict';`) at the top of every source file.
 - **Testing**: All pull requests must pass `CI=true npx jest --watchAll=false --ci --maxWorkers=2` (4 test suites, 30 tests). New routes or middleware should add corresponding test files under [tests/security/](tests/security/) using the Supertest pattern documented in [API Documentation › Programmatic API › server.js](#serverjs).
-- **Security**: Zero-tolerance for *new* vulnerabilities. Pull requests must not introduce any new `npm audit --audit-level=moderate` findings beyond those already documented in [Known Vulnerability Disclosure](#known-vulnerability-disclosure). Inviolable Constraint #10 (`blitzy/documentation/Technical Specifications.md` §5.4.8.1) targets a zero-findings baseline; the present transitive divergence is an environmental artifact disclosed for transparency, and remediation is tracked as future work. Pull requests that close the existing finding (via `express-rate-limit` major-version upgrade) are explicitly welcome.
+- **Security**: Zero-tolerance for *new* vulnerabilities. Pull requests must not introduce any new `npm audit --audit-level=moderate` findings beyond those already documented in [Known Vulnerability Disclosure](#known-vulnerability-disclosure). Inviolable Constraint #10 targets a zero-findings baseline as recorded in `blitzy/documentation/Project Guide.md` §1.3 line 38 ("npm audit reports 0 vulnerabilities across entire dependency tree"); the present transitive divergence is an environmental artifact disclosed for transparency, and remediation is tracked as future work. Pull requests that close the existing finding (via `express-rate-limit` major-version upgrade) are explicitly welcome.
 - **Backward compatibility**: The `GET /` contract — `200 OK`, `Content-Type: text/plain`, body `Hello, World!\n` — MUST be preserved byte-for-byte (Inviolable Constraint #1).
 - **No reordering of middleware**: The pipeline order helmet → cors → rate-limit → body parsers → routes → error handler is load-bearing (Inviolable Constraint #8).
 
